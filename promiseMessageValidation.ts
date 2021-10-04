@@ -10,8 +10,12 @@ const safetyString = ['jEBPfOjyBeEblWFP', 'C7r6tE0PJrI2oOH0']
  * @param messageData data received from event.data
  * @returns true if message data a promise message, false if not
  */
-export function isPromiseMessage(messageData : unknown) {
-    if (messageData[safetyString[0]] && messageData[safetyString[0]] == safetyString[1]) return true
+export function isPromiseMessage(messageData : any) { // Was using unknown here but was running into typecheck problems
+    if (typeof messageData === 'object' && messageData !== null) {
+        if (safetyString[0] in messageData) {
+            if (messageData[safetyString[0]] == safetyString[1]) return true
+        } 
+    }
     return false
 }
 

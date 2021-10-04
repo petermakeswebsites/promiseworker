@@ -1,4 +1,4 @@
-import {isPromiseMessage, _promiseMessageWrap} from './promiseMessageValidation'
+import {isPromiseMessage, _promiseMessageWrap} from './promiseMessageValidation.ts'
 
 export class PromiseWorker extends Worker {
 
@@ -54,24 +54,24 @@ export class PromiseWorker extends Worker {
  * Declare in worker. Functions as the receiving end of the promise.
  * @param callback function to run - value is what is being sent by the main thread. Returned value is sent back to promise
  */
-export function receivePromise(callback : (value, e?: MessageEvent) => unknown) {
+export function receivePromise(callback : (value : unknown, e?: MessageEvent) => unknown) {
     self.addEventListener('message', (e) => {
-        if (isPromiseMessage(e.data)) { 
+        if (isPromiseMessage((e as MessageEvent).data)) { 
         
             // Needs some type checking
-            const id = e.data.id
-            const data = e.data.data
+            const id = (e as MessageEvent).data.id
+            const data = (e as MessageEvent).data.data
 
             let rtn
             let error = 0
             try {
-                rtn = callback(data, e)
+                rtn = callback(data, (e as MessageEvent))
             } catch(err) {
                 rtn = err
                 error = 1
             }
 
-            self.postMessage(_promiseMessageWrap({
+            (self as any).postMessage(_promiseMessageWrap({
                 id: id,
                 error: error,
                 data: rtn
