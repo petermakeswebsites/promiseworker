@@ -1,2 +1,2 @@
-export {PromiseWorker} from './PromiseWorker'
+export {PromiseWorker, receivePromise} from './PromiseWorker'
 export {isPromiseMessage} from './promiseMessageValidation'
