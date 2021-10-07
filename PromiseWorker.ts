@@ -17,6 +17,7 @@ export class PromiseWorker extends Worker {
         [id : number]:[
             (value : unknown) => void, // Success callback
             (reason?: unknown) => void, // Fail callback
+            (update?: unknown) => void, // Update callback
             ]
         } = {}
 
@@ -27,10 +28,11 @@ export class PromiseWorker extends Worker {
             // TODO: Check if ID is in callback store
             const id = e.data.id
             const error = e.data.error
+            const update = e.data.update
 
             const store = this.callbackStore[id]
-            const callback = store[error]
-            delete this.callbackStore[id]
+            const callback = update ? store[2] : store[error]
+            if (!update) delete this.callbackStore[id]
             callback(e.data.data)
         }
     }
@@ -38,23 +40,23 @@ export class PromiseWorker extends Worker {
     /**
      * Sends a message to the worker with promise logic
      * @param data the data to send to the worker
-     * @param update a callback function which can be called by the worker that does not end the promise
-     * @returns 
+     * @param update optional callback function which can be called by the worker that does not end the promise
+     * @returns A promise that will resolve when the worker responds using receivePromise()
      */
-    sendPromise(data : unknown) {
+    sendPromise(data : unknown, update : (updateData : unknown) => void = (updateData) => {}) {
         const id = this.idCounter++
         this.postMessage(_promiseMessageWrap({id: id, data: data}))
         return new Promise((resolve, reject) => {
-            this.callbackStore[id] = [resolve, reject]
+            this.callbackStore[id] = [resolve, reject, update]
         })
     }
 }
 
 /**
  * Declare in worker. Functions as the receiving end of the promise.
- * @param callback function to run - value is what is being sent by the main thread. Returned value is sent back to promise
+ * @param callback function to run - value is what is being sent by the main thread. Returned value is sent back to promise. Optionally use 'update' if you declared an update callback in the original sendPromise
  */
-export function receivePromise(callback : (value : unknown, e?: MessageEvent) => unknown) {
+export function receivePromise(callback : (value : unknown, e: MessageEvent, update : (updateData : unknown) => void) => unknown) {
     self.addEventListener('message', (e) => {
         if (isPromiseMessage((e as MessageEvent).data)) { 
         
@@ -65,7 +67,15 @@ export function receivePromise(callback : (value : unknown, e?: MessageEvent) =>
             let rtn
             let error = 0
             try {
-                rtn = callback(data, (e as MessageEvent))
+                rtn = callback(data, (e as MessageEvent), (updateData : unknown) => {
+                    // Update callback
+                    (self as any).postMessage(_promiseMessageWrap({
+                        id: id,
+                        error: 0,
+                        data: updateData,
+                        update: 1
+                    }))
+                })
             } catch(err) {
                 rtn = err
                 error = 1
@@ -74,7 +84,8 @@ export function receivePromise(callback : (value : unknown, e?: MessageEvent) =>
             (self as any).postMessage(_promiseMessageWrap({
                 id: id,
                 error: error,
-                data: rtn
+                data: rtn,
+                update: 0
             }))
         }
     })

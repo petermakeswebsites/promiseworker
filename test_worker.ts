@@ -1,8 +1,12 @@
 import {receivePromise} from './PromiseWorker.ts'
 import {isPromiseMessage} from './promiseMessageValidation.ts'
 
-receivePromise((message) => {
+receivePromise((message, e, update) => {
     console.log('Detect promise!')
+    if (message == 'update test') {
+        console.log('Sending an update!')
+        update('Hello! I am an update')
+    }
     if (message == 'error') { throw new Error('Error in worker!')}
     return message + 'Polo'
 })

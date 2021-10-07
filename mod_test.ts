@@ -15,18 +15,25 @@ Deno.test("Error test", async () => {
         await worker.sendPromise('error')
         throw new Error("There wasn't any error!")
     } catch(error) {
-        console.log(error)
+        console.log('Success, we caught an error in the mainthread!', error)
     }
   });
 
 
 // This test won't fail if it doesn't work. Check the console log returns to make sure that it's not detecting
 Deno.test("Interference test", async () => {
-    worker.postMessage('Not promise Marco')
+    worker.postMessage('Not promise Marco - should not log anything except this message. Will pass either way')
   });
 
+
+// Update test
+Deno.test("Update test", async () => {
+    const result = await worker.sendPromise('update test', (response) => {console.log(response)})
+    console.log('Result: ', result)
+})
+
 Deno.test("Performance test", async () => {
-    const longstring = 'the quick brown fox jumped over'.repeat(1000000) // ~2.5 ish kb
+    const longstring = 'the quick brown fox jumped over'.repeat(1000000) // 25 MB ish
     let t0 = performance.now()
     const performanceworker = new PromiseWorker(new URL("./test_worker.ts", import.meta.url).href, { type: "module" })
     let t1 = performance.now()
@@ -40,7 +47,7 @@ Deno.test("Performance test", async () => {
     t0 = performance.now()
     await performanceworker.sendPromise({str: 'Marco 2 ', str2: longstring})
     t1 = performance.now()
-    console.log('Long string promise: ', t1 - t0, 'ms')
+    console.log('Long string promise (~25MB): ', t1 - t0, 'ms')
 
     t0 = performance.now()
     await performanceworker.sendPromise('Marco 3 ')

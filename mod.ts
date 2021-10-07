@@ -1,2 +1,2 @@
-export {PromiseWorker, receivePromise} from './PromiseWorker'
-export {isPromiseMessage} from './promiseMessageValidation'
+export {PromiseWorker, receivePromise} from './PromiseWorker.ts'
+export {isPromiseMessage} from './promiseMessageValidation.ts'
